@@ -12,7 +12,7 @@ using vectori = Jk.Vector2i;
 using vector = Jk.Vector2f;
 using range = Jk.Range2f;
 using volume = Jk.Obb2f;
-using geo = Jk.Geo2f;
+using geo = Jk.Geom2f;
 using polbool = Jk.PolBool2f;
 
 namespace Jk {

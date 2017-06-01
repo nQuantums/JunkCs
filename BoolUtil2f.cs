@@ -17,7 +17,7 @@ using vector = Jk.Vector2f;
 using volume = Jk.Range2f;
 using polbool = Jk.PolBool2f;
 using bezier = Jk.Bezier2f;
-using geo = Jk.Geo2f;
+using geo = Jk.Geom2f;
 
 namespace Jk {
 	/// <summary>

@@ -62,7 +62,7 @@
     <Compile Include="CsvWriter.cs" />
     <Compile Include="DynamicAABB2fTree.cs" />
     <Compile Include="FList.cs" />
-    <Compile Include="Geo2f.cs" />
+    <Compile Include="Geom2f.cs" />
     <Compile Include="GlobalLogger.cs" />
     <Compile Include="GridSpace2f.cs" />
     <Compile Include="IJsonable.cs" />

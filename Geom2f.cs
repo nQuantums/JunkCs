@@ -13,7 +13,7 @@ using volume = Jk.Obb2f;
 using polbool = Jk.PolBool2f;
 
 namespace Jk {
-	public static class Geo2f {
+	public static class Geom2f {
 		/// <summary>
 		/// 指定値を範囲内にクリップする
 		/// </summary>
