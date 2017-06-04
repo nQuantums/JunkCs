@@ -96,7 +96,7 @@ namespace Jk {
 
 		public bool IsAabb {
 			get {
-				return <#=d.VectorDefine.ElementWise("A_e == vector.Axis_E", delimiter: " && ")#>;
+				return <#=d.VectorDefine.ElementWise("A_e == vector.Axis_E", delimiter: " && ", countAdjust: -1)#>;
 			}
 		}
 

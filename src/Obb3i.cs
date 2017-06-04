@@ -91,7 +91,7 @@ namespace Jk {
 
 		public bool IsAabb {
 			get {
-				return Ax == vector.AxisX && Ay == vector.AxisY && Az == vector.AxisZ;
+				return Ax == vector.AxisX && Ay == vector.AxisY;
 			}
 		}
 
