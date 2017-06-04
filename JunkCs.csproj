@@ -41,87 +41,87 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Aabb2d.cs" />
-    <Compile Include="Aabb2f.cs" />
-    <Compile Include="Aabb2i.cs" />
-    <Compile Include="Aabb3d.cs" />
-    <Compile Include="Aabb3f.cs" />
-    <Compile Include="Aabb3i.cs" />
-    <Compile Include="Aabb4d.cs" />
-    <Compile Include="Aabb4f.cs" />
-    <Compile Include="Aabb4i.cs" />
-    <Compile Include="Bezier2d.cs" />
-    <Compile Include="Bezier2f.cs" />
-    <Compile Include="Bezier3d.cs" />
-    <Compile Include="Bezier3f.cs" />
-    <Compile Include="Bezier4d.cs" />
-    <Compile Include="Bezier4f.cs" />
-    <Compile Include="BoolUtil2f.cs" />
-    <Compile Include="Csv.cs" />
-    <Compile Include="CsvReader.cs" />
-    <Compile Include="CsvWriter.cs" />
-    <Compile Include="DynamicAABB2fTree.cs" />
-    <Compile Include="FList.cs" />
-    <Compile Include="Geom2f.cs" />
-    <Compile Include="GlobalLogger.cs" />
-    <Compile Include="GridSpace2f.cs" />
-    <Compile Include="IJsonable.cs" />
-    <Compile Include="IPN.cs" />
-    <Compile Include="Logger.cs" />
-    <Compile Include="Obb2d.cs" />
-    <Compile Include="Obb2f.cs" />
-    <Compile Include="Obb2i.cs" />
-    <Compile Include="Obb3d.cs" />
-    <Compile Include="Obb3f.cs" />
-    <Compile Include="Obb3i.cs" />
-    <Compile Include="Obb4d.cs" />
-    <Compile Include="Obb4f.cs" />
-    <Compile Include="Obb4i.cs" />
-    <Compile Include="PNBase.cs" />
-    <Compile Include="PNUtils.cs" />
-    <Compile Include="PolBool2f.cs" />
-    <Compile Include="PriorityQueue.cs" />
+    <Compile Include="src\Aabb2d.cs" />
+    <Compile Include="src\Aabb2f.cs" />
+    <Compile Include="src\Aabb2i.cs" />
+    <Compile Include="src\Aabb3d.cs" />
+    <Compile Include="src\Aabb3f.cs" />
+    <Compile Include="src\Aabb3i.cs" />
+    <Compile Include="src\Aabb4d.cs" />
+    <Compile Include="src\Aabb4f.cs" />
+    <Compile Include="src\Aabb4i.cs" />
+    <Compile Include="src\Bezier2d.cs" />
+    <Compile Include="src\Bezier2f.cs" />
+    <Compile Include="src\Bezier3d.cs" />
+    <Compile Include="src\Bezier3f.cs" />
+    <Compile Include="src\Bezier4d.cs" />
+    <Compile Include="src\Bezier4f.cs" />
+    <Compile Include="src\BoolUtil2f.cs" />
+    <Compile Include="src\Csv.cs" />
+    <Compile Include="src\CsvReader.cs" />
+    <Compile Include="src\CsvWriter.cs" />
+    <Compile Include="src\DynamicAABB2fTree.cs" />
+    <Compile Include="src\FList.cs" />
+    <Compile Include="src\Geom2f.cs" />
+    <Compile Include="src\GlobalLogger.cs" />
+    <Compile Include="src\GridSpace2f.cs" />
+    <Compile Include="src\IJsonable.cs" />
+    <Compile Include="src\IPN.cs" />
+    <Compile Include="src\Logger.cs" />
+    <Compile Include="src\Obb2d.cs" />
+    <Compile Include="src\Obb2f.cs" />
+    <Compile Include="src\Obb2i.cs" />
+    <Compile Include="src\Obb3d.cs" />
+    <Compile Include="src\Obb3f.cs" />
+    <Compile Include="src\Obb3i.cs" />
+    <Compile Include="src\Obb4d.cs" />
+    <Compile Include="src\Obb4f.cs" />
+    <Compile Include="src\Obb4i.cs" />
+    <Compile Include="src\PNBase.cs" />
+    <Compile Include="src\PNUtils.cs" />
+    <Compile Include="src\PolBool2f.cs" />
+    <Compile Include="src\PriorityQueue.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Range2d.cs" />
-    <Compile Include="Range2f.cs" />
-    <Compile Include="Range2i.cs" />
-    <Compile Include="Range3d.cs" />
-    <Compile Include="Range3f.cs" />
-    <Compile Include="Range3i.cs" />
-    <Compile Include="Range4d.cs" />
-    <Compile Include="Range4f.cs" />
-    <Compile Include="Range4i.cs" />
-    <Compile Include="Vector2d.cs" />
-    <Compile Include="Vector2f.cs" />
-    <Compile Include="Vector2i.cs" />
-    <Compile Include="Vector3d.cs" />
-    <Compile Include="Vector3f.cs" />
-    <Compile Include="Vector3i.cs" />
-    <Compile Include="Vector4d.cs" />
-    <Compile Include="Vector4f.cs" />
-    <Compile Include="Vector4i.cs" />
+    <Compile Include="src\Range2d.cs" />
+    <Compile Include="src\Range2f.cs" />
+    <Compile Include="src\Range2i.cs" />
+    <Compile Include="src\Range3d.cs" />
+    <Compile Include="src\Range3f.cs" />
+    <Compile Include="src\Range3i.cs" />
+    <Compile Include="src\Range4d.cs" />
+    <Compile Include="src\Range4f.cs" />
+    <Compile Include="src\Range4i.cs" />
+    <Compile Include="src\Vector2d.cs" />
+    <Compile Include="src\Vector2f.cs" />
+    <Compile Include="src\Vector2i.cs" />
+    <Compile Include="src\Vector3d.cs" />
+    <Compile Include="src\Vector3f.cs" />
+    <Compile Include="src\Vector3i.cs" />
+    <Compile Include="src\Vector4d.cs" />
+    <Compile Include="src\Vector4f.cs" />
+    <Compile Include="src\Vector4i.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="AabbDef.json" />
-    <None Include="BezierDef.json" />
-    <None Include="ObbDef.json" />
-    <None Include="RangeDef.json" />
-    <None Include="VectorDef.json" />
+    <None Include="src\AabbDef.json" />
+    <None Include="src\BezierDef.json" />
+    <None Include="src\ObbDef.json" />
+    <None Include="src\RangeDef.json" />
+    <None Include="src\VectorDef.json" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="AabbDef.tt">
+    <Content Include="src\AabbDef.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
     </Content>
-    <Content Include="BezierDef.tt">
+    <Content Include="src\BezierDef.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
     </Content>
-    <Content Include="ObbDef.tt">
+    <Content Include="src\ObbDef.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
     </Content>
-    <Content Include="RangeDef.tt">
+    <Content Include="src\RangeDef.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
     </Content>
-    <Content Include="VectorDef.tt">
+    <Content Include="src\VectorDef.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
     </Content>
   </ItemGroup>
