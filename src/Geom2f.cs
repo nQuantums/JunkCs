@@ -89,16 +89,15 @@ namespace Jk {
 		}
 
 		/// <summary>
-		/// 直線１の交点パラメータを計算する、<see cref="v1"/>、<see cref="v2"/>を入れ替えると直線２のパラメータが計算可能
+		/// 直線の交点パラメータを計算する
 		/// </summary>
-		/// <param name="pv">[in] 直線の開始点の差分、P2-P1</param>
-		/// <param name="v1">[in] 直線１の方向ベクトル</param>
-		/// <param name="v2">[in] 直線２の方向ベクトル</param>
+		/// <param name="pv">[in] 直線の開始点の差分、P2-P1またはP1-P2</param>
+		/// <param name="v">[in] 直線の方向ベクトル、渡されたものと逆の直線のパラメータが返る</param>
 		/// <param name="divisor">[in] <see cref="LineIntersectDivisor"/>で計算された除数</param>
-		/// <returns>直線１のパラメータ</returns>
+		/// <returns><see cref="v"/>と逆の直線のパラメータ</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static element LineIntersectParam(vector pv, vector v1, vector v2, element divisor) {
-			return (pv.X * v2.Y - pv.Y * v2.X) / divisor;
+		public static element LineIntersectParam(vector pv, vector v, element divisor) {
+			return (pv.X * v.Y - pv.Y * v.X) / divisor;
 		}
 	}
 }

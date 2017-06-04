@@ -12,7 +12,7 @@ using vectori = Jk.Vector2i;
 using vector = Jk.Vector2f;
 using range = Jk.Range2f;
 using volume = Jk.Obb2f;
-using geo = Jk.Geom2f;
+using geom = Jk.Geom2f;
 using polbool = Jk.PolBool2f;
 
 namespace Jk {
@@ -2871,14 +2871,14 @@ namespace Jk {
 						var v2 = to2.Position - p2;
 
 						// 交点のパラメータを計算、交点がノードと重なるなら交差してないことにする
-						var divisor = geo.LineIntersectDivisor(v1, v2);
+						var divisor = geom.LineIntersectDivisor(v1, v2);
 						if (Math.Abs(divisor) <= CalcEpsilon)
 							continue;
 						var pv = p2 - p1;
-						var t1 = geo.LineIntersectParam(pv, v1, v2, divisor);
+						var t1 = geom.LineIntersectParam(pv, v2, divisor);
 						if (t1 <= 0 || 1 <= t1)
 							continue;
-						var t2 = geo.LineIntersectParam(pv, v2, v1, divisor);
+						var t2 = geom.LineIntersectParam(pv, v1, divisor);
 						if (t2 <= 0 || 1 <= t2)
 							continue;
 

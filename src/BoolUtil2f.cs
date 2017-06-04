@@ -17,7 +17,7 @@ using vector = Jk.Vector2f;
 using volume = Jk.Range2f;
 using polbool = Jk.PolBool2f;
 using bezier = Jk.Bezier2f;
-using geo = Jk.Geom2f;
+using geom = Jk.Geom2f;
 
 namespace Jk {
 	/// <summary>
@@ -1061,22 +1061,22 @@ namespace Jk {
 								rightPolygons = edge.LeftPolygons;
 							}
 
-						// 進行方向右側にポリゴンが無ければ無視
-						if (rightGroupMax < 0)
+							// 進行方向右側にポリゴンが無ければ無視
+							if (rightGroupMax < 0)
 								return true;
 
-						// ポリゴン外との境界だったら無視はできない
-						if (leftGroupMax < 0)
+							// ポリゴン外との境界だったら無視はできない
+							if (leftGroupMax < 0)
 								return false;
 
-						// 左右のポリゴンが同じなら無視する
-						var rightPolygonIndex = rightPolygons[rightGroupMax];
+							// 左右のポリゴンが同じなら無視する
+							var rightPolygonIndex = rightPolygons[rightGroupMax];
 							var leftPolygonIndex = leftPolygons[leftGroupMax];
 							if (rightPolygonIndex == leftPolygonIndex)
 								return true;
 
-						// 左右のマテリアルが同じなら無視する
-						var rightPolygon = input[rightPolygonIndex].UserData as Polygon;
+							// 左右のマテリアルが同じなら無視する
+							var rightPolygon = input[rightPolygonIndex].UserData as Polygon;
 							var leftPolygon = input[leftPolygonIndex].UserData as Polygon;
 							var rightMaterial = rightPolygon != null ? rightPolygon.FaceMaterial : null;
 							var leftMaterial = leftPolygon != null ? leftPolygon.FaceMaterial : null;
@@ -1698,7 +1698,7 @@ namespace Jk {
 			// セグメント別に頂点数減らし処理をしていく
 			var enables = new bool[verticesCore.Count];
 			var segmentsCore = segments.Core;
-			for(int isegment = 0; isegment < segmentsCore.Count; isegment++) {
+			for (int isegment = 0; isegment < segmentsCore.Count; isegment++) {
 				var segment = segmentsCore.Items[isegment];
 				bool[] segmentEnables;
 				bool reverse;
@@ -1720,11 +1720,25 @@ namespace Jk {
 			return verticesCore.Count != reducedVertices.Count;
 		}
 
-		public enum CapsulePolygonCap {
-			BothCap,
-			EndCap,
-			EndConnect,
-			StartCapEndConnect,
+		/// <summary>
+		/// <see cref="CreateCapsulePolygon"/>のカプセル形状指定フラグ
+		/// </summary>
+		[Flags]
+		public enum CapsulePolygonFlags {
+			/// <summary>
+			/// 開始点側を丸める
+			/// </summary>
+			StartCap = 1 << 0,
+
+			/// <summary>
+			/// 終了点側を丸める
+			/// </summary>
+			EndCap = 1 << 1,
+
+			/// <summary>
+			/// 終了点側を次のカプセルの開始へつなげる
+			/// </summary>
+			EndConnect = 1 << 2,
 		}
 
 		/// <summary>
@@ -1732,13 +1746,13 @@ namespace Jk {
 		/// </summary>
 		/// <param name="p1">頂点１</param>
 		/// <param name="p2">頂点２</param>
-		/// <param name="cap">両端の形状を指定する</param>
-		/// <param name="nextAx"><see cref="cap"/>が<see cref="CapsulePolygonCap.StartCapEndConnect"/>の場合に使用される次のラインのベクトル、へスムーズに繋げるために使用する</param>
+		/// <param name="flags">両端の形状を指定するフラグ</param>
+		/// <param name="nextAx"><see cref="cap"/>が<see cref="CapsulePolygonFlags.StartCapEndConnect"/>の場合に使用される次のラインのベクトル、へスムーズに繋げるために使用する</param>
 		/// <param name="width">カプセルの太さ</param>
 		/// <param name="faceMaterial">表面マテリアル</param>
 		/// <param name="edgeMaterial">エッジマテリアル</param>
 		/// <returns>ポリゴン</returns>
-		public static Polygon CreateCapsulePolygon(vector p1, vector p2, CapsulePolygonCap cap, vector nextAx, float width, Material faceMaterial, Material edgeMaterial) {
+		public static Polygon CreateCapsulePolygon(vector p1, vector p2, CapsulePolygonFlags flags, vector nextAx, float width, Material faceMaterial, Material edgeMaterial) {
 			var ndiv = 4; // 隙間補間の分割数
 			var step = (element)1 / ndiv; // 隙間ベジェ補間時のtステップ
 
@@ -1747,68 +1761,36 @@ namespace Jk {
 				v = vector.AxisX;
 			var ax = v.Relength(width);
 			var ay = ax.RightAngle();
-
-			// 最初の頂点を登録
 			var vertices = new FList<vector>();
-			switch (cap) {
-			case CapsulePolygonCap.BothCap:
-				BezierCap(vertices, ndiv, step, p1, ax, ay);
-				vertices.Add(p1 + ay);
-				vertices.Add(p2 + ay);
-				BezierCap(vertices, ndiv, step, p2, -ax, -ay);
-				vertices.Add(p2 - ay);
-				vertices.Add(p1 - ay);
-				break;
-			case CapsulePolygonCap.EndCap:
-				vertices.Add(p1 + ay);
-				vertices.Add(p2 + ay);
-				BezierCap(vertices, ndiv, step, p2, -ax, -ay);
-				vertices.Add(p2 - ay);
-				vertices.Add(p1 - ay);
-				break;
-			case CapsulePolygonCap.EndConnect: {
-					vertices.Add(p1 - ay);
-					vertices.Add(p1 + ay);
 
-					var nextSide = ay.Dot(nextAx);
-					if (nextSide == 0) {
-						vertices.Add(p2 + ay);
-						vertices.Add(p2 - ay);
-					} else if (0 < nextSide) {
-						var nextAy = nextAx.RightAngle();
-						vertices.Add(p2 + ay);
-						vertices.Add(p2 - nextAy);
-						vertices.Add(p2 - ay);
-					} else {
-						var nextAy = nextAx.RightAngle();
-						vertices.Add(p2 + ay);
-						vertices.Add(p2 + nextAy);
-						vertices.Add(p2 - ay);
-					}
-				}
-				break;
-			case CapsulePolygonCap.StartCapEndConnect: {
-					var nextSide = ay.Dot(nextAx);
-					if (nextSide == 0) {
-						vertices.Add(p2 + ay);
-						vertices.Add(p2 - ay);
-					} else if (0 < nextSide) {
-						var nextAy = nextAx.RightAngle();
-						vertices.Add(p2 + ay);
-						vertices.Add(p2 - nextAy);
-						vertices.Add(p2 - ay);
-					} else {
-						var nextAy = nextAx.RightAngle();
-						vertices.Add(p2 + ay);
-						vertices.Add(p2 + nextAy);
-						vertices.Add(p2 - ay);
-					}
-					vertices.Add(p1 - ay);
-					BezierCap(vertices, ndiv, step, p1, ax, ay);
-					vertices.Add(p1 + ay);
-				}
-				break;
+			// 開始点側の形状作成
+			vertices.Add(p1 - ay);
+			if ((flags & CapsulePolygonFlags.StartCap) != 0) {
+				BezierCap(vertices, ndiv, step, p1, ax);
 			}
+			vertices.Add(p1 + ay);
+
+			// 終了点側の形状作成
+			vertices.Add(p2 + ay);
+			if ((flags & (CapsulePolygonFlags.EndCap | CapsulePolygonFlags.EndConnect)) == (CapsulePolygonFlags.EndCap | CapsulePolygonFlags.EndConnect)) {
+				// 滑らかにつなげるならベジェ曲線を使用する
+				BezierArc(vertices, ndiv, step, p2, ax, nextAx, Math.Sign(ay.Dot(nextAx)));
+			} else if((flags & CapsulePolygonFlags.EndCap) != 0) {
+				// 半円を作成
+				BezierCap(vertices, ndiv, step, p2, -ax);
+			} else if ((flags & CapsulePolygonFlags.EndConnect) != 0) {
+				var nextSide = ay.Dot(nextAx);
+				if (nextSide == 0) {
+					// 次のカプセルと角度が同じなので終端は普通に繋がる
+				} else if (0 < nextSide) {
+					// 次のカプセルは角度＋側に折れているので角度ー側を接続するための頂点挿入
+					vertices.Add(p2 - nextAx.RightAngle());
+				} else {
+					// 次のカプセルは角度ー側に折れているので角度＋側を接続するための頂点挿入
+					vertices.Add(p2 + nextAx.RightAngle());
+				}
+			}
+			vertices.Add(p2 - ay);
 
 			var loop = new Loop(vertices);
 			var pol = new Polygon();
@@ -1865,15 +1847,15 @@ namespace Jk {
 
             return list;
 #else
-            var verticesCore = vertices.Core;
-            if (verticesCore.Count < 2)
-                return new FList<Polygon>();
+			var verticesCore = vertices.Core;
+			if (verticesCore.Count < 2)
+				return new FList<Polygon>();
 
-            var list = new FList<Polygon>(verticesCore.Count - 1);
+			var list = new FList<Polygon>(verticesCore.Count - 1);
 
 			if (verticesCore.Count == 2) {
 				// 頂点数が２ならカプセル１つでＯＫ
-				list.Add(CreateCapsulePolygon(verticesCore.Items[0], verticesCore.Items[1], CapsulePolygonCap.BothCap, vector.Zero, width, faceMaterial, edgeMaterial));
+				list.Add(CreateCapsulePolygon(verticesCore.Items[0], verticesCore.Items[1], CapsulePolygonFlags.StartCap | CapsulePolygonFlags.EndCap, vector.Zero, width, faceMaterial, edgeMaterial));
 			} else {
 				// 頂点数が３以上なら複数のカプセルを繋げていく
 				var last = verticesCore.Count - 1;
@@ -1881,35 +1863,46 @@ namespace Jk {
 
 				for (int i = 1; i < verticesCore.Count; i++) {
 					var p2 = verticesCore.Items[i];
+					var ax2 = new vector();
+					CapsulePolygonFlags flags = 0;
+
+					// 最初のカプセルなら先端を丸める
+					if (i == 1)
+						flags |= CapsulePolygonFlags.StartCap;
+
 					if (i == last) {
-						// 終端を丸める
-						list.Add(CreateCapsulePolygon(p1, p2, CapsulePolygonCap.EndCap, vector.Zero, width, faceMaterial, edgeMaterial));
+						// 最後のカプセルなら終端を丸める
+						flags |= CapsulePolygonFlags.EndCap;
 					} else {
+						// 途中のカプセルなら終端を次のカプセルへつなげる
+						flags |= CapsulePolygonFlags.EndConnect;
+
 						var p3 = verticesCore.Items[i + 1];
-						var ax = (p3 - p2).Relength(width);
-						if (i == 1) {
-							// 先端を丸め終端を次へ繋げる
-							list.Add(CreateCapsulePolygon(p1, p2, CapsulePolygonCap.StartCapEndConnect, ax, width, faceMaterial, edgeMaterial));
-						} else {
-							// 終端を次へ繋げる
-							list.Add(CreateCapsulePolygon(p1, p2, CapsulePolygonCap.EndConnect, ax, width, faceMaterial, edgeMaterial));
+						var ax1 = (p2 - p1).Normalize();
+						ax2 = (p3 - p2).Normalize(); ;
+						if (ax1.Dot(ax2) < (element)0.5) {
+							// 次のカプセルとの角度がある程度あるなら滑らかにつなぐ
+							flags |= CapsulePolygonFlags.EndCap;
 						}
+						ax2.MulSelf(width);
 					}
+					list.Add(CreateCapsulePolygon(p1, p2, flags, ax2, width, faceMaterial, edgeMaterial));
+
 					p1 = p2;
 				}
 			}
 
 			return Or(list).ToPolygons();
 #endif
-        }
-        #endregion
+		}
+		#endregion
 
-        #region 非公開メソッド
-        /// <summary>
-        /// ポリゴンを構成するエッジから対応する入力値のグループ、ポリゴンのインデックスを探して設定する
-        /// </summary>
-        /// <param name="epolygon">ブーリアン演算結果のポリゴン</param>
-        static void SetSrcGroupPolygon(polbool.EPolygon epolygon) {
+		#region 非公開メソッド
+		/// <summary>
+		/// ポリゴンを構成するエッジから対応する入力値のグループ、ポリゴンのインデックスを探して設定する
+		/// </summary>
+		/// <param name="epolygon">ブーリアン演算結果のポリゴン</param>
+		static void SetSrcGroupPolygon(polbool.EPolygon epolygon) {
 			// 既に設定済みなら何もしない
 			if ((epolygon.UserValue & EPolygonFlags.SrcGroupPolygonSet) != 0)
 				return;
@@ -2541,7 +2534,7 @@ namespace Jk {
 			var l_points = new FList<vector>(); // -Y軸側頂点列
 
 			// 最初の頂点を登録
-			BezierCap(u_points, ndiv, step, p1, ax1, ay1);
+			BezierCap(u_points, ndiv, step, p1, ax1);
 			u_points.Add(p1 + ay1);
 			l_points.Add(p1 - ay1);
 
@@ -2555,7 +2548,7 @@ namespace Jk {
 
 					// 折れ曲がっているか調べる
 					// 折れ曲がるなら隙間を補間する
-					var divisor = geo.LineIntersectDivisor(ax1, ax2);
+					var divisor = geom.LineIntersectDivisor(ax1, ax2);
 					if (CalcEpsilon < Math.Abs(divisor)) {
 						// 交点を求める
 						var u_p1 = p2 + ay1;
@@ -2564,13 +2557,13 @@ namespace Jk {
 						var l_p1 = p2 - ay1;
 						var l_p2 = p2 - ay2;
 						var l_pv = l_p2 - l_p1;
-						var u_t1 = geo.LineIntersectParam(u_pv, ax1, ax2, divisor);
+						var u_t1 = geom.LineIntersectParam(u_pv, ax2, divisor);
 						var l_t1 = -u_t1; //geo.LineIntersectParam(l_pv, v1, v2, divisor);
 
 						if (0 < divisor) {
 							// +Y軸側に折れている場合
-							var l_t2 = geo.Clip(-l_t1, -BezierCircle, BezierCircle);
-							geo.Clip(ref l_t1, -BezierCircle, BezierCircle);
+							var l_t2 = geom.Clip(-l_t1, -BezierCircle, BezierCircle);
+							geom.Clip(ref l_t1, -BezierCircle, BezierCircle);
 							var u_c = u_p1 + u_t1 * ax1;
 							var l_c1 = l_p1 + l_t1 * ax1;
 							var l_c2 = l_p2 + l_t2 * ax2;
@@ -2578,14 +2571,14 @@ namespace Jk {
 							u_points.Add(u_c);
 							l_points.Add(l_p1);
 
-                            // 隙間をベジェで補間
-                            CubicBezierInterpolate(l_points, ndiv, step, l_p1, l_c1, l_c2, l_p2);
+							// 隙間をベジェで補間
+							CubicBezierInterpolate(l_points, ndiv, step, l_p1, l_c1, l_c2, l_p2);
 
-                            l_points.Add(l_p2);
+							l_points.Add(l_p2);
 						} else {
 							// -Y軸側に折れている場合
-							var u_t2 = geo.Clip(-u_t1, -BezierCircle, BezierCircle);
-							geo.Clip(ref u_t1, -BezierCircle, BezierCircle);
+							var u_t2 = geom.Clip(-u_t1, -BezierCircle, BezierCircle);
+							geom.Clip(ref u_t1, -BezierCircle, BezierCircle);
 							var l_c = l_p1 + l_t1 * ax1;
 							var u_c1 = u_p1 + u_t1 * ax1;
 							var u_c2 = u_p2 + u_t2 * ax2;
@@ -2593,10 +2586,10 @@ namespace Jk {
 							l_points.Add(l_c);
 							u_points.Add(u_p1);
 
-                            // 隙間をベジェで補間
-                            CubicBezierInterpolate(u_points, ndiv, step, u_p1, u_c1, u_c2, u_p2);
+							// 隙間をベジェで補間
+							CubicBezierInterpolate(u_points, ndiv, step, u_p1, u_c1, u_c2, u_p2);
 
-                            u_points.Add(u_p2);
+							u_points.Add(u_p2);
 						}
 					}
 
@@ -2611,7 +2604,7 @@ namespace Jk {
 			// 最後の頂点を登録
 			u_points.Add(p2 + ay1);
 			l_points.Add(p2 - ay1);
-			BezierCap(u_points, ndiv, step, p2, -ax1, -ay1);
+			BezierCap(u_points, ndiv, step, p2, -ax1);
 
 			// 全頂点を合成する
 			l_points.Reverse();
@@ -2641,7 +2634,16 @@ namespace Jk {
 				points.Add(bezier.Interpolate3(i * step, p0, p1, p2, p3));
 		}
 
-		static void BezierCap(FList<vector> points, int ndiv, element step, vector p, vector ax, vector ay) {
+		/// <summary>
+		/// ベジェ曲線により半円状のキャップを作成する
+		/// </summary>
+		/// <param name="points">頂点の追加先</param>
+		/// <param name="ndiv">分割数</param>
+		/// <param name="step">分割した際のステップ、通常は 1 / <see cref="ndiv"/></param>
+		/// <param name="p">半円の中心</param>
+		/// <param name="ax">X軸ベクトル、長さは半円の半径</param>
+		static void BezierCap(FList<vector> points, int ndiv, element step, vector p, vector ax) {
+			var ay = ax.RightAngle();
 			var c = p - ax;
 			var pmay = p - ay;
 			var ppay = p + ay;
@@ -2651,6 +2653,48 @@ namespace Jk {
 			points.Add(c);
 			CubicBezierInterpolate(points, ndiv, step, c, c + ayb, ppay - axb, ppay);
 		}
-#endregion
+
+		/// <summary>
+		/// ベジェ曲線により弧状の接続曲線を作成する
+		/// </summary>
+		/// <param name="points">頂点の追加先</param>
+		/// <param name="ndiv">分割数</param>
+		/// <param name="step">分割した際のステップ、通常は 1 / <see cref="ndiv"/></param>
+		/// <param name="p">半円の中心</param>
+		/// <param name="ax1">カプセル１のX軸ベクトル、長さは半円の半径</param>
+		/// <param name="ax2">カプセル２のX軸ベクトル、長さは半円の半径</param>
+		/// <param name="dirSign">カプセル１に対してカプセル２の折れている方向、正数なら＋側、負数ならー側</param>
+		static void BezierArc(FList<vector> points, int ndiv, element step, vector p, vector ax1, vector ax2, element dirSign) {
+			var ay1 = ax1.RightAngle();
+			var ay2 = ax2.RightAngle();
+
+			var p1 = p - dirSign * ay1; // 弧開始座標
+			var p2 = p - dirSign * ay2; // 弧終了座標
+			vector p12, p22;
+
+			var divisor = geom.LineIntersectDivisor(ax1, ax2);
+			if ((element)1.0e-37 < Math.Abs(divisor)) {
+				var pv = p2 - p1;
+				var t1 = geom.LineIntersectParam(pv, ax2, divisor);
+				var t2 = geom.LineIntersectParam(pv, ax1, divisor);
+				t1 = geom.Clip(t1, -1, 1);
+				t2 = geom.Clip(t2, -1, 1);
+				p12 = p1 + ax1 * t1;
+				p22 = p2 + ax2 * t2;
+			} else {
+				p12 = p1 + ax1;
+				p22 = p2 + ax2;
+			}
+
+			if(0 <= dirSign) {
+				points.Add(p2);
+				CubicBezierInterpolate(points, ndiv, step, p2, p22, p12, p1);
+			} else {
+				CubicBezierInterpolate(points, ndiv, step, p1, p12, p22, p2);
+				points.Add(p2);
+			}
+
+		}
+		#endregion
 	}
 }
