@@ -58,26 +58,22 @@ namespace Jk {
 <#=d.ElementWise("\t\t\t_E = arr[_i];")#>
 		}
 
-		public element this[int i] {
+		public ref element this[int i] {
+			<#=d.Inlining()#>
 			get {
-				switch (i) {
-<#=d.ElementWise(
-	"\t\t\t\tcase _i: return _E;",
-	delimiter: "\n",
-	postfix: "\t\t\t\tdefault: throw new IndexOutOfRangeException();")#>
-				}
-			}
-			set {
-				switch (i) {
-<#=d.ElementWise(
-	"\t\t\t\tcase _i: _E = value; break;",
-	delimiter: "\n",
-	postfix: "\t\t\t\tdefault: throw new IndexOutOfRangeException();")#>
+				unsafe
+				{
+					if (<#=d.length#> <= (uint)i)
+						throw new IndexOutOfRangeException();
+					fixed (element* p = &this.<#=d.Fields[0]#>) {
+						return ref p[i];
+					}
 				}
 			}
 		}
 
 		public bool IsZero {
+			<#=d.Inlining()#>
 			get {
 <#=d.ElementWise(
 	"_E == 0",
@@ -88,6 +84,7 @@ namespace Jk {
 		}
 
 		public bool HasZero {
+			<#=d.Inlining()#>
 			get {
 <#=d.ElementWise(
 	"_E == 0",
@@ -134,6 +131,7 @@ namespace Jk {
 		}
 
 		public element LengthSquare {
+			<#=d.Inlining()#>
 <#=d.ElementWise(
 	"_E * _E",
 	delimiter: " + ",
@@ -142,6 +140,7 @@ namespace Jk {
 		}
 
 		public element Length {
+			<#=d.Inlining()#>
 			get { return (element)Math.Sqrt(LengthSquare); }
 		}
 
@@ -316,7 +315,7 @@ case 2:#>
 
 		<#=d.Inlining()#>
 		public element Max() {
-			var m = X;
+			var m = <#=d.Fields[0]#>;
 <#=d.ElementWise(
 	"\t\t\tif (_E > m) m = _E;",
 	delimiter: "\n",
@@ -326,12 +325,34 @@ case 2:#>
 
 		<#=d.Inlining()#>
 		public element Min() {
-			var m = X;
+			var m = <#=d.Fields[0]#>;
 <#=d.ElementWise(
 	"\t\t\tif (_E < m) m = _E;",
 	delimiter: "\n",
 	startIndex: 1)#>
 			return m;
+		}
+
+		<#=d.Inlining()#>
+		public int ArgMax() {
+			var m = <#=d.Fields[0]#>;
+			var i = 0;
+<#=d.ElementWise(
+	"\t\t\tif (_E > m) { m = _E; i = _i; }",
+	delimiter: "\n",
+	startIndex: 1)#>
+			return i;
+		}
+
+		<#=d.Inlining()#>
+		public int ArgMin() {
+			var m = <#=d.Fields[0]#>;
+			var i = 0;
+<#=d.ElementWise(
+	"\t\t\tif (_E < m) { m = _E; i = _i; }",
+	delimiter: "\n",
+	startIndex: 1)#>
+			return i;
 		}
 
 		<#=d.Inlining()#>
@@ -521,6 +542,27 @@ case 2:#>
 	delimiter: "\n")#>
 			min = v1;
 			max = v2;
+		}
+
+		public element[] Flatten(vector[] srcArray, int start, int count) {
+			unsafe
+			{
+				var dstArray = new element[<#=d.length#> * count];
+				if (count != 0) {
+					fixed (vector* pSrcOrg = &srcArray[start])
+					fixed (element* pDstOrg = &dstArray[0]) {
+						var pSrc = pSrcOrg;
+						var pDst = pDstOrg;
+						var pSrcEnd = pSrc + count;
+						while (pSrc < pSrcEnd) {
+							*(vector*)pDst = *pSrc;
+							pSrc++;
+							pDst += <#=d.length#>;
+						}
+					}
+				}
+				return dstArray;
+			}
 		}
 
 #if UNITY_5_3_OR_NEWER

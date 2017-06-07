@@ -68,34 +68,29 @@ namespace Jk {
 			W = arr[3];
 		}
 
-		public element this[int i] {
+		public ref element this[int i] {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
-				switch (i) {
-				case 0: return X;
-				case 1: return Y;
-				case 2: return Z;
-				case 3: return W;
-				default: throw new IndexOutOfRangeException();
-				}
-			}
-			set {
-				switch (i) {
-				case 0: X = value; break;
-				case 1: Y = value; break;
-				case 2: Z = value; break;
-				case 3: W = value; break;
-				default: throw new IndexOutOfRangeException();
+				unsafe
+				{
+					if (4 <= (uint)i)
+						throw new IndexOutOfRangeException();
+					fixed (element* p = &this.X) {
+						return ref p[i];
+					}
 				}
 			}
 		}
 
 		public bool IsZero {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
 				return X == 0 && Y == 0 && Z == 0 && W == 0;
 			}
 		}
 
 		public bool HasZero {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
 				return X == 0 || Y == 0 || Z == 0 || W == 0;
 			}
@@ -125,10 +120,12 @@ namespace Jk {
 		}
 
 		public element LengthSquare {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return X * X + Y * Y + Z * Z + W * W; }
 		}
 
 		public element Length {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return (element)Math.Sqrt(LengthSquare); }
 		}
 
@@ -307,6 +304,26 @@ namespace Jk {
 			if (Z < m) m = Z;
 			if (W < m) m = W;
 			return m;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int ArgMax() {
+			var m = X;
+			var i = 0;
+			if (Y > m) { m = Y; i = 1; }
+			if (Z > m) { m = Z; i = 2; }
+			if (W > m) { m = W; i = 3; }
+			return i;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int ArgMin() {
+			var m = X;
+			var i = 0;
+			if (Y < m) { m = Y; i = 1; }
+			if (Z < m) { m = Z; i = 2; }
+			if (W < m) { m = W; i = 3; }
+			return i;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -501,6 +518,27 @@ namespace Jk {
 			if (v2.W < v1.W) { var t = v1.W; v1.W = v2.W; v2.W = t; };
 			min = v1;
 			max = v2;
+		}
+
+		public element[] Flatten(vector[] srcArray, int start, int count) {
+			unsafe
+			{
+				var dstArray = new element[4 * count];
+				if (count != 0) {
+					fixed (vector* pSrcOrg = &srcArray[start])
+					fixed (element* pDstOrg = &dstArray[0]) {
+						var pSrc = pSrcOrg;
+						var pDst = pDstOrg;
+						var pSrcEnd = pSrc + count;
+						while (pSrc < pSrcEnd) {
+							*(vector*)pDst = *pSrc;
+							pSrc++;
+							pDst += 4;
+						}
+					}
+				}
+				return dstArray;
+			}
 		}
 
 #if UNITY_5_3_OR_NEWER

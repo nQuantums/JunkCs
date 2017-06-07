@@ -52,30 +52,29 @@ namespace Jk {
 			Y = arr[1];
 		}
 
-		public element this[int i] {
+		public ref element this[int i] {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
-				switch (i) {
-				case 0: return X;
-				case 1: return Y;
-				default: throw new IndexOutOfRangeException();
-				}
-			}
-			set {
-				switch (i) {
-				case 0: X = value; break;
-				case 1: Y = value; break;
-				default: throw new IndexOutOfRangeException();
+				unsafe
+				{
+					if (2 <= (uint)i)
+						throw new IndexOutOfRangeException();
+					fixed (element* p = &this.X) {
+						return ref p[i];
+					}
 				}
 			}
 		}
 
 		public bool IsZero {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
 				return X == 0 && Y == 0;
 			}
 		}
 
 		public bool HasZero {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
 				return X == 0 || Y == 0;
 			}
@@ -105,10 +104,12 @@ namespace Jk {
 		}
 
 		public element LengthSquare {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return X * X + Y * Y; }
 		}
 
 		public element Length {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return (element)Math.Sqrt(LengthSquare); }
 		}
 
@@ -268,6 +269,22 @@ namespace Jk {
 			var m = X;
 			if (Y < m) m = Y;
 			return m;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int ArgMax() {
+			var m = X;
+			var i = 0;
+			if (Y > m) { m = Y; i = 1; }
+			return i;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int ArgMin() {
+			var m = X;
+			var i = 0;
+			if (Y < m) { m = Y; i = 1; }
+			return i;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -445,6 +462,27 @@ namespace Jk {
 			if (v2.Y < v1.Y) { var t = v1.Y; v1.Y = v2.Y; v2.Y = t; };
 			min = v1;
 			max = v2;
+		}
+
+		public element[] Flatten(vector[] srcArray, int start, int count) {
+			unsafe
+			{
+				var dstArray = new element[2 * count];
+				if (count != 0) {
+					fixed (vector* pSrcOrg = &srcArray[start])
+					fixed (element* pDstOrg = &dstArray[0]) {
+						var pSrc = pSrcOrg;
+						var pDst = pDstOrg;
+						var pSrcEnd = pSrc + count;
+						while (pSrc < pSrcEnd) {
+							*(vector*)pDst = *pSrc;
+							pSrc++;
+							pDst += 2;
+						}
+					}
+				}
+				return dstArray;
+			}
 		}
 
 #if UNITY_5_3_OR_NEWER

@@ -271,11 +271,32 @@ namespace PolBoolTest {
 
 		Shape ToWpf(bool2dutil.Polygon pol) {
 			var gg = new GeometryGroup();
-			foreach (var loop in pol.Loops) {
+
+			//// 全ループを Polygon に変換し gg へ登録
+			//foreach (var loop in pol.Loops) {
+			//	var wpol = new Polygon();
+			//	wpol.Fill = pol.FaceMaterial;
+			//	wpol.Stroke = pol.EdgeMaterial;
+			//	wpol.Points = new PointCollection(from v in loop.Vertices select TP(v.Position));
+			//	wpol.Arrange(new Rect(_Canvas.RenderSize));
+			//	wpol.Measure(_Canvas.RenderSize);
+			//	gg.Children.Add(wpol.RenderedGeometry);
+			//}
+
+			// 三角形分割する
+			var loops = pol.Loops;
+			var allPoints = Triangulation2f.LoopsToPositions<bool2dutil.Vertex>(
+				(ref bool2dutil.Vertex v) => v.Position,
+				pol.VertexLoops);
+			var indices = new FList<Vector3i>();
+			Triangulation2f.Triangulate(allPoints, indices);
+			foreach (var tri in indices) {
 				var wpol = new Polygon();
 				wpol.Fill = pol.FaceMaterial;
 				wpol.Stroke = pol.EdgeMaterial;
-				wpol.Points = new PointCollection(from v in loop.Vertices select TP(v.Position));
+				wpol.Points.Add(TP(allPoints[tri.X]));
+				wpol.Points.Add(TP(allPoints[tri.Y]));
+				wpol.Points.Add(TP(allPoints[tri.Z]));
 				wpol.Arrange(new Rect(_Canvas.RenderSize));
 				wpol.Measure(_Canvas.RenderSize);
 				gg.Children.Add(wpol.RenderedGeometry);

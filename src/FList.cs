@@ -71,6 +71,7 @@ namespace Jk {
 
 		#region プロパティ
 		public CoreElement Core {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
 				return new CoreElement(_Items, _Count);
 			}
@@ -86,27 +87,33 @@ namespace Jk {
 		}
 
 		public ref T this[int index] {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
 				return ref _Items[index];
 			}
 		}
 
 		public int Capacity {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
 				return _Items.Length;
 			}
 			set {
 				Array.Resize(ref _Items, value);
+				if (value < _Count)
+					_Count = value;
 			}
 		}
 
 		public int Count {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
 				return _Count;
 			}
 		}
 
 		public bool IsReadOnly {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
 				return false;
 			}
@@ -127,6 +134,19 @@ namespace Jk {
 				var count = list._Count;
 				var items = new T[count];
 				Array.Copy(list._Items, items, count);
+				_Items = items;
+				_Count = count;
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FList(FList<T> list, int start) {
+			if (list._Items == EmptyArray && start == 0) {
+				_Items = EmptyArray;
+			} else {
+				var count = list._Count - start;
+				var items = new T[count];
+				Array.Copy(list._Items, start, items, 0, count);
 				_Items = items;
 				_Count = count;
 			}
@@ -308,6 +328,13 @@ namespace Jk {
 			T[] array = new T[_Count];
 			Array.Copy(_Items, 0, array, 0, _Count);
 			return array;
+		}
+
+		public TargetType[] ToArray<TargetType>() {
+			var flatter = (object)default(T) as IFlattenable<TargetType, T>;
+			if (flatter == null)
+				return null;
+			return flatter.Flatten(_Items, 0, _Count);
 		}
 
 		public override string ToString() {

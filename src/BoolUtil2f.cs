@@ -274,9 +274,25 @@ namespace Jk {
 			public volume Volume = volume.InvalidValue;
 
 			/// <summary>
-			/// コンストラクタ
+			/// 全ループの頂点配列の配列の取得
 			/// </summary>
-			public Polygon() {
+			public FList<FList<Vertex>> VertexLoops {
+				get {
+					var loops = this.Loops;
+					if (loops == null || loops.Count == 0)
+						return new FList<FList<Vertex>>();
+					var loopsCore = loops.Core;
+					var vertexLoops = new FList<FList<Vertex>>(loopsCore.Count);
+					for (int i = 0; i < loopsCore.Count; i++)
+						vertexLoops.Add(loopsCore.Items[i].Vertices);
+					return vertexLoops;
+				}
+			}
+
+		/// <summary>
+		/// コンストラクタ
+		/// </summary>
+		public Polygon() {
 				this.Loops = new FList<Loop>();
 			}
 
