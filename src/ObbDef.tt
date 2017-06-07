@@ -89,12 +89,14 @@ namespace Jk {
 		}
 
 		public bool IsValid {
+			<#=d.Inlining()#>
 			get {
 				return vector.Zero <= Extents;
 			}
 		}
 
 		public bool IsAabb {
+			<#=d.Inlining()#>
 			get {
 				return <#=d.VectorDefine.ElementWise("A_e == vector.Axis_E", delimiter: " && ", countAdjust: -1)#>;
 			}

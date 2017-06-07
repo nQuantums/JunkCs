@@ -14,27 +14,55 @@ namespace Jk {
 	public class Triangulation2f {
 		#region 内部クラス
 		#region 汎用
+		/// <summary>
+		/// 頂点から座標を抜き出すデリゲート
+		/// </summary>
+		/// <typeparam name="T">頂点型</typeparam>
+		/// <param name="vertex">頂点</param>
+		/// <returns>座標</returns>
 		public delegate vector Project<T>(ref T vertex);
 
+		/// <summary>
+		/// <see cref="Triangulation2f"/>内で発生する例外
+		/// </summary>
 		public class Exception : System.Exception {
 			public Exception(string message)
 				: base(message) {
 			}
 		}
 
-		struct Iterator<T> {
+		/// <summary>
+		/// 指定型リストとそのリスト内のインデックスを持つポインタ
+		/// </summary>
+		/// <typeparam name="T">要素型</typeparam>
+		public struct Pointer<T> {
+			/// <summary>
+			/// リスト
+			/// </summary>
 			public FList<T> List;
+
+			/// <summary>
+			/// <see cref="List"/>のインデックス
+			/// </summary>
 			public int Index;
 
+			/// <summary>
+			/// ポインタが指す値
+			/// </summary>
 			public ref T Value {
 				[MethodImpl(MethodImplOptions.AggressiveInlining)]
 				get {
-					return ref List[Index];
+					return ref this.List[Index];
 				}
 			}
 
+			/// <summary>
+			/// リストとリスト内インデックスを指定して初期化する
+			/// </summary>
+			/// <param name="list">リスト</param>
+			/// <param name="index">リスト内インデックス</param>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public Iterator(FList<T> list, int index) {
+			public Pointer(FList<T> list, int index) {
 				this.List = list;
 				this.Index = index;
 			}
@@ -210,7 +238,7 @@ namespace Jk {
 		/// <summary>
 		/// ベクトルを指定軸で比較する
 		/// </summary>
-		class VectorAxisComparer : IComparer<vector> {
+		struct VectorAxisComparer {
 			int _Axis;
 
 			public VectorAxisComparer(int axis) {
@@ -223,43 +251,82 @@ namespace Jk {
 		}
 
 		/// <summary>
-		/// ベクトルイテレータを指定軸で比較する
+		/// 頂点を指定軸で比較する
 		/// </summary>
-		class VectorIteratorAxisComparer : IComparer<Iterator<vector>> {
+		/// <typeparam name="T">頂点型</typeparam>
+		struct VertexAxisComparer<T> {
+			Project<T> _Project;
 			int _Axis;
 
-			public VectorIteratorAxisComparer(int axis) {
+			public VertexAxisComparer(Project<T> project, int axis) {
+				_Project = project;
 				_Axis = axis;
 			}
 
-			public int Compare(Iterator<vector> a, Iterator<vector> b) {
+			public int Compare(ref T a, ref T b) {
+				return AxisOrdering(_Project(ref a), _Project(ref b), _Axis);
+			}
+		}
+
+		/// <summary>
+		/// ベクトルポインタを指定軸で比較する
+		/// </summary>
+		class VectorPointerAxisComparer : IComparer<Pointer<vector>> {
+			int _Axis;
+
+			public VectorPointerAxisComparer(int axis) {
+				_Axis = axis;
+			}
+
+			public int Compare(Pointer<vector> a, Pointer<vector> b) {
 				return AxisOrdering(a.Value, b.Value, _Axis);
 			}
 		}
 
 		/// <summary>
-		/// 指定された座標と座標列間の距離で比較する、距離が小さい方が大きいと判定される
+		/// 頂点ポインタを指定軸で比較する
 		/// </summary>
-		class DistanceComparer : IComparer<int> {
-			FList<vector> _Loop;
+		class VertexPointerAxisComparer<T> : IComparer<Pointer<T>> {
+			Project<T> _Project;
+			int _Axis;
+
+			public VertexPointerAxisComparer(Project<T> project, int axis) {
+				_Project = project;
+				_Axis = axis;
+			}
+
+			public int Compare(Pointer<T> a, Pointer<T> b) {
+				return AxisOrdering(_Project(ref a.Value), _Project(ref b.Value), _Axis);
+			}
+		}
+
+		/// <summary>
+		/// 指定された座標と頂点列間の距離で比較する、距離が小さい方が大きいと判定される
+		/// </summary>
+		/// <typeparam name="T">頂点型</typeparam>
+		class DistanceComparer<T> : IComparer<int> {
+			Project<T> _Project;
+			FList<T> _Loop;
 			vector _P;
 			int _Axis;
 
 			/// <summary>
 			/// 座標列、注目座標、距離が同じ場合に<see cref="AxisOrdering"/>で比較に使用する軸を指定して初期化する
 			/// </summary>
+			/// <param name="project">頂点から座標を抜き出す</param>
 			/// <param name="loop">頂点列</param>
 			/// <param name="vert">注目座標</param>
 			/// <param name="axis">軸インデックス</param>
-			public DistanceComparer(FList<vector> loop, vector vert, int axis) {
+			public DistanceComparer(Project<T> project, FList<T> loop, vector vert, int axis) {
+				_Project = project;
 				_Loop = loop;
 				_P = vert;
 				_Axis = axis;
 			}
 
 			public int Compare(int a, int b) {
-				var pa = _Loop[a];
-				var pb = _Loop[b];
+				var pa = _Project(ref _Loop[a]);
+				var pb = _Project(ref _Loop[b]);
 				var da = (_P - pa).LengthSquare;
 				var db = (_P - pb).LengthSquare;
 				if (da > db) return -1;
@@ -296,138 +363,95 @@ namespace Jk {
 
 		#region 公開メソッド
 		/// <summary>
-		/// ループ配列を１つのポリゴン頂点座標配列へ結合する
-		/// </summary>
-		/// <typeparam name="T">頂点型</typeparam>
-		/// <param name="project"><see cref="T"/>から座標ベクトルを取得するデリゲート</param>
-		/// <param name="loops">ループ配列、添え字[0:外側、1...:穴]</param>
-		/// <param name="resultPositions">結果の頂点座標が返る</param>
-		public static void LoopsToPositions<T>(Project<T> project, FList<FList<T>> loops, FList<vector> resultPositions) {
-			if (loops.Count == 0) {
-				resultPositions.Clear();
-				return;
-			}
-			if (loops.Count == 1) {
-				var loop = loops[0];
-				var loopCore = loop.Core;
-
-				resultPositions.Clear();
-				if (resultPositions.Capacity < loopCore.Count)
-					resultPositions.Capacity = loopCore.Count;
-
-				for (int i = 0; i < loopCore.Count; i++)
-					resultPositions.Add(project(ref loopCore.Items[i]));
-				return;
-			}
-			LoopsToPositions(project, loops[0], new FList<FList<T>>(loops, 1), resultPositions);
-		}
-
-		/// <summary>
-		/// ループ配列を１つのポリゴン頂点座標配列へ結合する
-		/// </summary>
-		/// <typeparam name="T">頂点型</typeparam>
-		/// <param name="project"><see cref="T"/>から座標ベクトルを取得するデリゲート</param>
-		/// <param name="loops">ループ配列、添え字[0:外側、1...:穴]</param>
-		/// <returns>外と穴のループから座標を抜き出し一列にしたリスト</returns>
-		public static FList<vector> LoopsToPositions<T>(Project<T> project, FList<FList<T>> loops) {
-			var resultPositions = new FList<vector>();
-			LoopsToPositions(project, loops, resultPositions);
-			return resultPositions;
-		}
-
-
-		/// <summary>
 		/// 外枠頂点ループと穴ループ配列を１つのポリゴン頂点座標配列へ結合する
 		/// </summary>
 		/// <typeparam name="T">頂点型</typeparam>
 		/// <param name="project"><see cref="T"/>から座標ベクトルを取得するデリゲート</param>
-		/// <param name="vertexLoop">外枠頂点ループ</param>
-		/// <param name="holeVertexLoops">穴頂点ループ配列</param>
-		/// <param name="resultPositions">結果の頂点座標が返る</param>
-		public static void LoopsToPositions<T>(Project<T> project, FList<T> vertexLoop, FList<FList<T>> holeVertexLoops, FList<vector> resultPositions) {
-			var N = vertexLoop.Count;
-			var holeVertexLoopsCore = holeVertexLoops.Core;
+		/// <param name="vertexLoops">頂点ループ配列、添え字は[0:外枠頂点ループ、1...:穴ループ]</param>
+		/// <param name="resultVertices">三角形分割用に１つの配列にまとめられた外枠と穴の頂点列が返る、これを<see cref="Triangulate"/>に渡す</param>
+		public static void LoopsToPositions<T>(Project<T> project, FList<FList<T>> vertexLoops, FList<T> resultVertices) {
+			resultVertices.Clear();
+			if (vertexLoops.Count == 0)
+				return;
 
-			// 全ての穴ループを結合した際に必要な要素数を計算
-			for (int i = holeVertexLoopsCore.Count - 1; i != -1; i--) {
-				N += 2 + holeVertexLoopsCore.Items[i].Count;
+			var vertexLoopsCore = vertexLoops.Core;
+			var polygonVerticesCore = vertexLoopsCore.Items[0].Core;
+			var N = polygonVerticesCore.Count;
+
+			// 全てのループを結合した際に必要な要素数を計算
+			for (int i = vertexLoopsCore.Count - 1; i != 0; i--) {
+				N += 2 + vertexLoopsCore.Items[i].Count;
 			}
 
-			// 結果の座標配列の容量確保
-			resultPositions.Clear();
-			if (resultPositions.Capacity < N)
-				resultPositions.Capacity = N;
+			// 結果の頂点列の容量確保
+			if (resultVertices.Capacity < N)
+				resultVertices.Capacity = N;
 
-			// まず外枠ループの頂点座標を入れておく
-			var vertexLoopCore = vertexLoop.Core;
-			for (int i = 0; i < vertexLoopCore.Count; i++) {
-				resultPositions.Add(project(ref vertexLoopCore.Items[i]));
-			}
-
-			// 穴ループの頂点からベクトルを取得する
-			var holeLoops = new FList<FList<vector>>(holeVertexLoopsCore.Count);
-			for (int i = 0; i < holeVertexLoopsCore.Count; i++) {
-				var holeVertexLoopCore = holeVertexLoopsCore.Items[i].Core;
-				var holeLoop = new FList<vector>(holeVertexLoopCore.Count);
-				for (int j = 0; j < holeVertexLoopCore.Count; j++) {
-					holeLoop.Add(project(ref holeVertexLoopCore.Items[j]));
-				}
-				holeLoops.Add(holeLoop);
-			}
+			// まず外枠ループの頂点を入れておく
+			resultVertices.AddRange(polygonVerticesCore);
 
 			// 全穴ループを包含する境界ボリュームを探す
 			var maxmin = range.InvalidValue;
-			for (int i = holeLoops.Count - 1; i != -1; i--) {
-				var holeLoop = holeLoops[i];
-				for (int j = holeLoop.Count - 1; j != -1; j--) {
-					maxmin.MergeSelf(holeLoop[j]);
+			for (int i = vertexLoopsCore.Count - 1; i != 0; i--) {
+				var holeLoopCore = vertexLoopsCore.Items[i].Core;
+				for (int j = holeLoopCore.Count - 1; j != -1; j--) {
+					maxmin.MergeSelf(project(ref holeLoopCore.Items[j]));
 				}
 			}
 
 			// 境界ボリュームの最も広がりが大きい軸を選ぶ
 			int axis = maxmin.Size.ArgMax();
 
-			// 各穴ループ内で選択軸の値が最も小さいベクトルを指すイテレータを列挙する
-			var holeLoopMinIndices = new FList<Iterator<vector>>(holeLoops.Count);
-			for (int i = holeLoops.Count - 1; i != -1; i--) {
-				var holeLoop = holeLoops[i];
-				var best_i = MinElementIndex(holeLoop, new VectorAxisComparer(axis));
-				holeLoopMinIndices.Add(new Iterator<vector>(holeLoop, best_i));
+			// 各穴ループ内で選択軸の値が最も小さい頂点を指すポインタを列挙する
+			var holeMinPointers = new FList<Pointer<T>>(vertexLoopsCore.Count - 1);
+			for (int i = vertexLoopsCore.Count - 1; i != 0; i--) {
+				var holeLoop = vertexLoopsCore.Items[i];
+				var holeLoopCore = holeLoop.Core;
+				var best_i = 0;
+				var min = project(ref holeLoopCore.Items[0])[axis];
+				for (int j = 1; j < holeLoopCore.Count; j++) {
+					var t = project(ref holeLoopCore.Items[j])[axis];
+					if (t < min) {
+						min = t;
+						best_i = j;
+					}
+				}
+				holeMinPointers.Add(new Pointer<T>(holeLoop, best_i));
 			}
 
-			// イテレータが指すベクトルの選択軸値で昇順にソートする
-			holeLoopMinIndices.Sort(new VectorIteratorAxisComparer(axis));
+			// ポインタが指すベクトルの選択軸値で昇順にソートする
+			holeMinPointers.Sort(new VertexPointerAxisComparer<T>(project, axis));
 
-			// 各穴ループと接続する resultPositionsCount 内のインデックスを探していく
+			// 各穴ループと接続する resultVertices 内のインデックスを探していく
 			var indices = new FList<int>(N);
-			for (int i = 0; i < holeLoopMinIndices.Count; ++i) {
-				var resultPositionsCount = resultPositions.Count;
+			for (int i = 0; i < holeMinPointers.Count; ++i) {
+				var resultVerticesCount = resultVertices.Count;
 
 				// 穴ループ内の外ループと接続する点取得
-				var holeConnectPosition = holeLoopMinIndices[i].Value;
+				var holeConnectPosition = project(ref holeMinPointers[i].Value);
 				var holeAxisMinValue = holeConnectPosition[axis];
 
 				// 処理済みの点の中から穴と接続するのにベストなものを探すためリストに登録する。
 				// 接続する際に自ループと交差しないものを選ぶため holeAxisMinValue より小さい座標の頂点を登録する。
 				// さらに holeLoopMinIndices は穴ループの指定軸最小値で昇順にソートされているため、他の穴ループとは交差しないことが保証されている。
-				for (int j = 0; j < resultPositionsCount; ++j) {
-					if (resultPositions[j][axis] <= holeAxisMinValue) {
+				for (int j = 0; j < resultVerticesCount; ++j) {
+					if (project(ref resultVertices[j])[axis] <= holeAxisMinValue) {
 						indices.Add(j);
 					}
 				}
 
-				// holeConnectPosition との距離で降順にソートし最後尾が最も近いものになる
-				indices.Sort(new DistanceComparer(resultPositions, holeConnectPosition, axis));
+				// holeConnectPosition との距離で降順にソートする、最後尾が最も近いものになる
+				indices.Sort(new DistanceComparer<T>(project, resultVertices, holeConnectPosition, axis));
 
 				// 距離が近い順から接続した際に他と交差しない点を探す
-				var attachmentPoint = resultPositions.Count;
+				var attachmentPoint = resultVertices.Count;
 				while (indices.Count != 0) {
 					var last = indices.Count - 1;
 					var curr = indices[last];
 					indices.RemoveAt(last);
 
 					// 接続可能かテストする
-					if (!TestCandidateAttachment(resultPositions, curr, holeConnectPosition)) {
+					if (!TestCandidateAttachment<T>(project, resultVertices, curr, holeConnectPosition)) {
 						continue;
 					}
 
@@ -435,42 +459,30 @@ namespace Jk {
 					break;
 				}
 
-				if (attachmentPoint == resultPositions.Count) {
+				if (attachmentPoint == resultVertices.Count) {
 					throw new Exception("didn't manage to link up hole!");
 				}
 
-				PatchHoleIntoPolygon(resultPositions, attachmentPoint, holeLoopMinIndices[i]);
+				PatchHoleIntoVertices(resultVertices, attachmentPoint, holeMinPointers[i]);
 			}
-		}
-
-		/// <summary>
-		/// 外枠頂点ループと穴ループ配列を１つのポリゴン頂点座標配列へ結合する
-		/// </summary>
-		/// <typeparam name="T">頂点型</typeparam>
-		/// <param name="project"><see cref="T"/>から座標ベクトルを取得するデリゲート</param>
-		/// <param name="vertexLoop">外枠頂点ループ</param>
-		/// <param name="holeVertexLoops">穴頂点ループ配列</param>
-		/// <returns>外と穴のループから座標を抜き出し一列にしたリスト</returns>
-		public static FList<vector> LoopsToPositions<T>(Project<T> project, FList<T> vertexLoop, FList<FList<T>> holeVertexLoops) {
-			var resultPositions = new FList<vector>();
-			LoopsToPositions(project, vertexLoop, holeVertexLoops, resultPositions);
-			return resultPositions;
 		}
 
 		/// <summary>
 		/// 指定された頂点座標配列を三角形分割する
 		/// </summary>
-		/// <param name="positions">頂点座標配列</param>
-		/// <param name="result">ポリゴンインデックスが返る</param>
-		public static void Triangulate(FList<vector> positions, FList<Vector3i> result) {
-			var N = positions.Count;
+		/// <typeparam name="T">頂点型</typeparam>
+		/// <param name="project">頂点から座標を抜き出す</param>
+		/// <param name="vertices">頂点配列</param>
+		/// <param name="result">頂点インデックスが返る</param>
+		public static void Triangulate<T>(Project<T> project, FList<T> vertices, FList<Vector3i> result) {
+			var N = vertices.Count;
 
 			result.Clear();
 			if (N < 3) {
 				return;
 			}
 
-			result.Capacity = positions.Count - 2;
+			result.Capacity = vertices.Count - 2;
 
 			if (N == 3) {
 				result.Add(new Vector3i(0, 1, 2));
@@ -479,13 +491,13 @@ namespace Jk {
 
 			var vinfo = new VertexInfo[N];
 
-			vinfo[0] = new VertexInfo(positions[0], 0);
+			vinfo[0] = new VertexInfo(project(ref vertices[0]), 0);
 			for (int i = 1; i < N - 1; ++i) {
-				vinfo[i] = new VertexInfo(positions[i], i);
+				vinfo[i] = new VertexInfo(project(ref vertices[i]), i);
 				vinfo[i].Prev = vinfo[i - 1];
 				vinfo[i - 1].Next = vinfo[i];
 			}
-			vinfo[N - 1] = new VertexInfo(positions[N - 1], N - 1);
+			vinfo[N - 1] = new VertexInfo(project(ref vertices[N - 1]), N - 1);
 			vinfo[N - 1].Prev = vinfo[N - 2];
 			vinfo[N - 1].Next = vinfo[0];
 			vinfo[0].Prev = vinfo[N - 1];
@@ -849,20 +861,6 @@ namespace Jk {
 			return true;
 		}
 
-		static int MinElementIndex<T>(FList<T> list, IComparer<T> comparer) {
-			var listCore = list.Core;
-			T min = listCore.Items[0];
-			int index = 0;
-			for (int i = listCore.Count - 1; i != 0; i--) {
-				var t = listCore.Items[i];
-				if (comparer.Compare(t, min) < 0) {
-					min = t;
-					index = i;
-				}
-			}
-			return index;
-		}
-
 		static bool LineSegmentIntersectionSimple(vector s1, vector e1, vector s2, vector e2) {
 			var v = s1 - e1;
 			var ox = s2.Y - s1.Y;
@@ -879,33 +877,36 @@ namespace Jk {
 			return LineSegmentIntersectionSimple(seg1.P1, seg1.P2, seg2.P1, seg2.P2);
 		}
 
-		static bool TestCandidateAttachment(FList<vector> currentFLoop, int curr, vector holeMin) {
-			var count = currentFLoop.Count;
+		static bool TestCandidateAttachment<T>(Project<T> project, FList<T> vertices, int curr, vector holeMin) {
+			var count = vertices.Count;
 			var prev = (curr - 1 + count) % count;
 			var next = (curr + 1) % count;
+			var currP = project(ref vertices[curr]);
 
-			if (!InternalToAngle(currentFLoop[next], currentFLoop[curr], currentFLoop[prev], holeMin)) {
+			if (!InternalToAngle(project(ref vertices[next]), currP, project(ref vertices[prev]), holeMin)) {
 				return false;
 			}
 
-			if (holeMin == currentFLoop[curr]) {
+			if (holeMin == currP) {
 				return true;
 			}
 
-			var test = new LineSegment2(holeMin, currentFLoop[curr]);
+			var test = new LineSegment2(holeMin, currP);
 
-			var v1 = count - 1;
-			int v2 = 0;
-			var v1_side = Orient(test.P1, test.P2, currentFLoop[v1]);
+			var i1 = count - 1;
+			var p1 = project(ref vertices[i1]);
+			int i2 = 0;
+			var v1_side = Orient(test.P1, test.P2, p1);
 			element v2_side = 0;
 
-			while (v2 != count) {
-				v2_side = Orient(test.P1, test.P2, currentFLoop[v2]);
+			while (i2 != count) {
+				var p2 = project(ref vertices[i2]);
+				v2_side = Orient(test.P1, test.P2, p2);
 
 				if (v1_side != v2_side) {
 					// XXX: need to test vertices, not indices, because they may be duplicated.
-					if (currentFLoop[v1] != currentFLoop[curr] && currentFLoop[v2] != currentFLoop[curr]) {
-						var test2 = new LineSegment2(currentFLoop[v1], currentFLoop[v2]);
+					if (p1 != currP && p2 != currP) {
+						var test2 = new LineSegment2(p1, p2);
 						if (LineSegmentIntersectionSimple(ref test, ref test2)) {
 							// intersection; failed.
 							return false;
@@ -913,36 +914,29 @@ namespace Jk {
 					}
 				}
 
-				v1 = v2;
+				i1 = i2;
+				p1 = p2;
 				v1_side = v2_side;
-				++v2;
+				++i2;
 			}
 			return true;
 		}
 
-		/** 
-		 * \brief Given a polygon loop and a hole loop, and attachment
-		 * points, insert the hole loop vertices into the polygon loop.
-		 * 
-		 * @param[in,out] f_loop The polygon loop to incorporate the
-		 *                       hole into.
-		 * @param f_loop_attach[in] The index of the vertex of the
-		 *                          polygon loop that the hole is to be
-		 *                          attached to.
-		 * @param hole_attach[in] A pair consisting of a pointer to a
-		 *                        hole container and an iterator into
-		 *                        that container reflecting the point of
-		 *                        attachment of the hole.
-		 */
-		static void PatchHoleIntoPolygon(FList<vector> f_loop, int f_loop_attach, Iterator<vector> hole_attach) {
-			// join the vertex curr of the polygon loop to the hole at
-			// h_loop_connect
-			var hole_temp = new vector[hole_attach.List.Count + 2];
-			for (int i = 0, n = hole_attach.List.Count; i <= n; i++) {
-				hole_temp[i] = hole_attach.List[(hole_attach.Index + i) % n];
+		/// <summary>
+		/// <see cref="resultVertices"/>に穴ループの頂点を挿入する
+		/// </summary>
+		/// <typeparam name="T">頂点型</typeparam>
+		/// <param name="vertices">挿入先頂点リスト</param>
+		/// <param name="index"><see cref="vertices"/>内での接続先位置</param>
+		/// <param name="holeAttach">穴ループの接続頂点へのポインタ</param>
+		static void PatchHoleIntoVertices<T>(FList<T> vertices, int index, Pointer<T> holeAttach) {
+			var holeLoopCore = holeAttach.List.Core;
+			var holeTemp = new T[holeLoopCore.Count + 2];
+			for (int i = 0; i <= holeLoopCore.Count; i++) {
+				holeTemp[i] = holeLoopCore.Items[(holeAttach.Index + i) % holeLoopCore.Count];
 			}
-			hole_temp[hole_temp.Length - 1] = f_loop[f_loop_attach];
-			f_loop.InsertRange(f_loop_attach + 1, hole_temp);
+			holeTemp[holeTemp.Length - 1] = vertices[index];
+			vertices.InsertRange(index + 1, holeTemp);
 		}
 		#endregion
 	}

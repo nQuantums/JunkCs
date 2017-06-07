@@ -78,12 +78,14 @@ namespace Jk {
 		}
 
 		public bool IsValid {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
 				return vector.Zero <= Extents;
 			}
 		}
 
 		public bool IsAabb {
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get {
 				return Ax == vector.AxisX;
 			}

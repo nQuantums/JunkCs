@@ -284,19 +284,21 @@ namespace PolBoolTest {
 			//}
 
 			// 三角形分割する
-			var loops = pol.Loops;
-			var allPoints = Triangulation2f.LoopsToPositions<bool2dutil.Vertex>(
-				(ref bool2dutil.Vertex v) => v.Position,
-				pol.VertexLoops);
+			var project = new Triangulation2f.Project<bool2dutil.Vertex>((ref bool2dutil.Vertex v) => v.Position);
+			var vertices = new FList<bool2dutil.Vertex>();
+			Triangulation2f.LoopsToPositions<bool2dutil.Vertex>(
+				project,
+				pol.VertexLoops,
+				vertices);
 			var indices = new FList<Vector3i>();
-			Triangulation2f.Triangulate(allPoints, indices);
+			Triangulation2f.Triangulate<bool2dutil.Vertex>(project, vertices, indices);
 			foreach (var tri in indices) {
 				var wpol = new Polygon();
 				wpol.Fill = pol.FaceMaterial;
 				wpol.Stroke = pol.EdgeMaterial;
-				wpol.Points.Add(TP(allPoints[tri.X]));
-				wpol.Points.Add(TP(allPoints[tri.Y]));
-				wpol.Points.Add(TP(allPoints[tri.Z]));
+				wpol.Points.Add(TP(vertices[tri.X].Position));
+				wpol.Points.Add(TP(vertices[tri.Y].Position));
+				wpol.Points.Add(TP(vertices[tri.Z].Position));
 				wpol.Arrange(new Rect(_Canvas.RenderSize));
 				wpol.Measure(_Canvas.RenderSize);
 				gg.Children.Add(wpol.RenderedGeometry);
